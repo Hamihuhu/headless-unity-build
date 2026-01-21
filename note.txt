@@ -1,0 +1,10 @@
+what i need:
+- exec
+- help
+- default list
+- mouse
+- pager for logs
+- spinner
+- composable views
+- multiple text inputs
+- timer
