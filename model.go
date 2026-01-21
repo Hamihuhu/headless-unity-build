@@ -5,6 +5,12 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 )
 
+type appModel struct {
+	focusedView int
+	inputView   inputModel.Model
+	buildView   buildSettings.Model
+}
+
 type buildSettings struct {
 	method      textinput.Model
 	buildDir    textinput.Model
@@ -16,7 +22,7 @@ type buildSettings struct {
 	aab         bool
 }
 
-type appModel struct {
+type inputModel struct {
 	focusTextInput int
 	textInputs     []textinput.Model
 	cursorModel    cursor.Mode
