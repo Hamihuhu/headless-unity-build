@@ -3,8 +3,28 @@ what i need:
 - help
 - default list
 - mouse
-- pager for logs
+- viewport for logs
 - spinner
 - composable views
 - multiple text inputs
 - timer
+
+app structure:
+- input model:
+    - build method: dropdown
+    - build directory: text input
+    - output name: text input
+    - version : text input => int
+    - version code: text input
+    - aab: checkbox
+- log model:
+    - log output: pager
+    - build progress: spinner
+    - build timer: timer
+    - text area for logs
+    - preferablely searchable for logs
+- main view: composable views
+    - input model view
+    - log model view
+- show help on footer for focused view
+- mouse support for all views
