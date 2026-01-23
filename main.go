@@ -4,22 +4,37 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-// type appModel struct {
-// 	focusedView int
-// 	inputView   InputModel
-// 	buildView   BuildSettings
-// }
+var (
+	modelStyle = lipgloss.NewStyle().
+			Width(15).
+			Height(5).
+			Align(lipgloss.Center, lipgloss.Center).
+			BorderStyle(lipgloss.HiddenBorder())
+
+	focusedModelStyle = lipgloss.NewStyle().
+				Width(15).
+				Height(5).
+				Align(lipgloss.Center, lipgloss.Center).
+				BorderStyle(lipgloss.NormalBorder()).
+				BorderForeground(lipgloss.Color("69"))
+)
 
 type appModel struct {
-	inputModel InputModel
+	focusedView int
+	inputView   InputModel
+	logView     textarea.Model
 }
 
 func initialModel() appModel {
 	return appModel{
-		inputModel: newInputModel(),
+		focusedView: 0,
+		inputView:   newInputModel(),
+		logView:     textarea.New(),
 	}
 }
 
@@ -36,15 +51,31 @@ func (a appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
+		case "tab":
+			a.focusedView = (a.focusedView + 1) % 2
 		}
 	}
 
-	cmd = a.inputModel.Update(msg)
+	switch a.focusedView {
+	case 0:
+		cmd = a.inputView.Update(msg)
+	case 1:
+		a.logView, cmd = a.logView.Update(msg)
+	}
+
+	cmd = a.inputView.Update(msg)
 	return a, cmd
 }
 
 func (a appModel) View() string {
-	return a.inputModel.View()
+	var s string
+	if a.focusedView == 0 {
+		s += lipgloss.JoinHorizontal(lipgloss.Top, focusedModelStyle.Render(fmt.Sprintf("%4s", a.inputView.View())), modelStyle.Render(a.logView.View()))
+	} else {
+		s += lipgloss.JoinHorizontal(lipgloss.Top, modelStyle.Render(fmt.Sprintf("%4s", a.inputView.View())), focusedModelStyle.Render(a.logView.View()))
+	}
+
+	return s
 }
 
 func main() {

@@ -14,13 +14,11 @@ import (
 )
 
 var (
-	focusedStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	selectedStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	blurredStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	cursorStyle         = focusedStyle
-	noStyle             = lipgloss.NewStyle()
-	helpStyle           = blurredStyle
-	cursorModeHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
+	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("90")).Bold(true)
+	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	noStyle       = lipgloss.NewStyle()
+	helpStyle     = blurredStyle
 )
 
 type InputModel struct {
@@ -63,28 +61,28 @@ func newInputModel() InputModel {
 	// buildDirectory text input
 	buildDirInput := textinput.New()
 	buildDirInput.Placeholder = "/path/to/build/directory"
-	buildDirInput.Prompt = "Build Directory: >"
+	buildDirInput.Prompt = "Build Directory: "
 	buildDirInput.CharLimit = 256
 	buildDirInput.Width = 40
 
 	// outputFileName text input
 	outputFileNameInput := textinput.New()
 	outputFileNameInput.Placeholder = "output.apk"
-	outputFileNameInput.Prompt = "Output File Name: >"
+	outputFileNameInput.Prompt = "Output File Name: "
 	outputFileNameInput.CharLimit = 100
 	outputFileNameInput.Width = 40
 
 	// versionNumber text input
 	versionNumberInput := textinput.New()
 	versionNumberInput.Placeholder = "1.0.0"
-	versionNumberInput.Prompt = "Version Number: >"
+	versionNumberInput.Prompt = "Version Number: "
 	versionNumberInput.CharLimit = 20
 	versionNumberInput.Width = 20
 
 	// versionCode text input
 	versionCodeInput := textinput.New()
 	versionCodeInput.Placeholder = "1"
-	versionCodeInput.Prompt = "Version Code: >"
+	versionCodeInput.Prompt = "Version Code: "
 	versionCodeInput.CharLimit = 10
 	versionCodeInput.Width = 10
 
@@ -151,12 +149,14 @@ func (i InputModel) View() string {
 
 	b.WriteString(helpStyle.Render(strconv.Itoa(i.focusedIndex) + ": Focused Index\n"))
 	b.WriteString(helpStyle.Render(strconv.Itoa(i.selectedInput) + ": Selected Input\n"))
+	b.WriteString(i.PrintBuildSettings() + "\n")
+	b.WriteString(i.ConvertToBuildCmd() + "\n")
 
 	return b.String()
 }
 
 func (i *InputModel) focusNextInput(index int) {
-	if i.focusedIndex+index < 5 && i.focusedIndex+index >= 0 {
+	if i.focusedIndex+index <= 5 && i.focusedIndex+index >= 0 {
 		i.focusedIndex += index
 	} else if i.focusedIndex+index < 0 {
 		i.focusedIndex = 5
@@ -190,20 +190,20 @@ func (i *InputModel) selectInput() {
 	switch i.selectedInput {
 	case 1:
 		i.buildDirectory.Focus()
-		i.buildDirectory.PromptStyle = focusedStyle
-		i.buildDirectory.TextStyle = focusedStyle
+		i.buildDirectory.PromptStyle = selectedStyle
+		i.buildDirectory.TextStyle = selectedStyle
 	case 2:
 		i.outputFileName.Focus()
-		i.outputFileName.PromptStyle = focusedStyle
-		i.outputFileName.TextStyle = focusedStyle
+		i.outputFileName.PromptStyle = selectedStyle
+		i.outputFileName.TextStyle = selectedStyle
 	case 3:
 		i.versionNumber.Focus()
-		i.versionNumber.PromptStyle = focusedStyle
-		i.versionNumber.TextStyle = focusedStyle
+		i.versionNumber.PromptStyle = selectedStyle
+		i.versionNumber.TextStyle = selectedStyle
 	case 4:
 		i.versionCode.Focus()
-		i.versionCode.PromptStyle = focusedStyle
-		i.versionCode.TextStyle = focusedStyle
+		i.versionCode.PromptStyle = selectedStyle
+		i.versionCode.TextStyle = selectedStyle
 	}
 }
 
@@ -272,4 +272,34 @@ func (i *InputModel) clearStyles() {
 
 	i.versionCode.PromptStyle = noStyle
 	i.versionCode.TextStyle = noStyle
+}
+
+func (i InputModel) PrintBuildSettings() string {
+	var b strings.Builder
+	b.WriteString("Current Build Settings:\n")
+	b.WriteString("Build Method: " + i.buildMethod.SelectedItem().FilterValue() + "\n")
+	b.WriteString("Build Directory: " + i.buildDirectory.Value() + "\n")
+	b.WriteString("Output File Name: " + i.outputFileName.Value() + "\n")
+	b.WriteString("Version Number: " + i.versionNumber.Value() + "\n")
+	b.WriteString("Version Code: " + i.versionCode.Value() + "\n")
+	b.WriteString("Build as AAB: " + i.aabFlag.SelectedItem().FilterValue() + "\n")
+	return b.String()
+}
+
+func (i InputModel) ConvertToBuildCmd() string {
+	var b strings.Builder
+	b.WriteString("/Unity/Editor/6000.0.58f2/Editor/Unity")
+	b.WriteString(" -batchmode")
+	b.WriteString(" -nographics")
+	b.WriteString(" -quit")
+	b.WriteString(" -projectPath " + i.buildDirectory.Value())
+	b.WriteString(" -executeMethod " + i.buildMethod.SelectedItem().FilterValue())
+	b.WriteString(" -logFile -")
+	b.WriteString(" --")
+	b.WriteString(" buildPath=" + i.buildDirectory.Value())
+	b.WriteString(" fileName=" + i.outputFileName.Value())
+	b.WriteString(" version=" + i.versionNumber.Value())
+	b.WriteString(" versionCode=" + i.versionCode.Value())
+	b.WriteString(" aabCheck=" + strings.ToLower(i.aabFlag.SelectedItem().FilterValue()))
+	return b.String()
 }
