@@ -95,12 +95,12 @@ func newInputModel() InputModel {
 
 func (i InputModel) Update(msg tea.Msg) (InputModel, tea.Cmd) {
 	var cmds []tea.Cmd
-	
+
 	// Don't consume shift+b - let the global handler in main.go handle it
 	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.String() == "shift+b" {
 		return i, nil
 	}
-	
+
 	if i.selectedInput == -1 {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -300,6 +300,18 @@ func (i InputModel) PrintBuildSettings() string {
 // }
 
 func (i InputModel) ConvertToBuildCmd() []string {
-	var cmds []string
-	return cmds
+	var cmd []string
+	cmd = append(cmd, "-batchmode")
+	cmd = append(cmd, "-nographics")
+	cmd = append(cmd, "-quit")
+	cmd = append(cmd, "-projectPath", "/Unity/Projects/NW3_Build/source")
+	cmd = append(cmd, "-executeMethod", "AndroidBuildMethod.BuildUnlock")
+	cmd = append(cmd, "-logFile", "-")
+	cmd = append(cmd, "--")
+	cmd = append(cmd, "buildPath=/Unity/Projects/NW3_Build/build")
+	cmd = append(cmd, "fileName=test.apk")
+	cmd = append(cmd, "version=60")
+	cmd = append(cmd, "versionCode=1.60.2")
+	cmd = append(cmd, "aabCheck=false")
+	return cmd
 }

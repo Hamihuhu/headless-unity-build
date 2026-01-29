@@ -32,11 +32,11 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Calculate half width for each view, accounting for borders and padding
 		a.viewWidth = (msg.Width / 2) - 4
 		a.viewHeight = msg.Height - 4
-		
+
 		// Update viewport size
 		a.logModel.viewport.Width = a.viewWidth
 		a.logModel.viewport.Height = a.viewHeight
-		
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -44,7 +44,7 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			a.focusedView = (a.focusedView + 1) % 2
 		case "B":
-			cmds = append(cmds, a.logModel.ExecuteBuildCommand("ls", a.inputModel.ConvertToBuildCmd()), WaitForBuildResponses(a.logModel.sub))
+			cmds = append(cmds, a.logModel.ExecuteBuildCommand("/Unity/Editor/6000.0.58f2/Editor/Unity", a.inputModel.ConvertToBuildCmd()), WaitForBuildResponses(a.logModel.sub))
 		}
 	}
 
@@ -63,11 +63,11 @@ func (a AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (a AppModel) View() string {
 	inputView := a.inputModel.View()
 	logView := a.logModel.View()
-	
+
 	// Apply dynamic sizing
 	focusedStyle := focusedModelStyle.Width(a.viewWidth).Height(a.viewHeight)
 	unfocusedStyle := modelStyle.Width(a.viewWidth).Height(a.viewHeight)
-	
+
 	if a.focusedView == InputView {
 		return lipgloss.JoinHorizontal(
 			lipgloss.Top,
@@ -75,7 +75,7 @@ func (a AppModel) View() string {
 			unfocusedStyle.Render(logView),
 		)
 	}
-	
+
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		unfocusedStyle.Render(inputView),
