@@ -10,29 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
-
-var (
-	focusedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("90")).Bold(true)
-	blurredStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	noStyle       = lipgloss.NewStyle()
-	helpStyle     = blurredStyle
-)
-
-type InputModel struct {
-	buildMethod    list.Model
-	buildDirectory textinput.Model
-	outputFileName textinput.Model
-	versionNumber  textinput.Model
-	versionCode    textinput.Model
-	aabFlag        list.Model
-
-	focusedIndex  int
-	selectedInput int
-	cursorModel   cursor.Mode
-}
 
 type buildMethodItem string
 
@@ -48,13 +26,20 @@ func (b buildMethodItem) Description() string {
 func (b buildMethodItem) FilterValue() string { return string(b) }
 
 func newInputModel() InputModel {
+	// Create custom delegate with matching colors
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.NormalTitle = noStyle
+	delegate.Styles.SelectedTitle = listFocusedStyle
+	delegate.Styles.NormalDesc = blurredStyle
+	delegate.Styles.SelectedDesc = listFocusedStyle
+
 	// Build Method list
 	items := []list.Item{
 		buildMethodItem("AndroidBuildMethod.BuildUnlock"),
 		buildMethodItem("AndroidBuildMethod.BuildLock"),
 		buildMethodItem("AndroidBuildMethod.Build"),
 	}
-	buildMethodList := list.New(items, list.NewDefaultDelegate(), 50, 6)
+	buildMethodList := list.New(items, delegate, 50, 6)
 	buildMethodList.Title = "Select Build Method"
 	buildMethodList.SetShowHelp(false)
 
@@ -86,12 +71,12 @@ func newInputModel() InputModel {
 	versionCodeInput.CharLimit = 10
 	versionCodeInput.Width = 10
 
-	// AAB Flag list
+	// AAB Flag list (reuse delegate)
 	aabItems := []list.Item{
 		buildMethodItem("True"),
 		buildMethodItem("False"),
 	}
-	aabList := list.New(aabItems, list.NewDefaultDelegate(), 50, 2)
+	aabList := list.New(aabItems, delegate, 50, 2)
 	aabList.Title = "Build as AAB?"
 	aabList.SetShowHelp(false)
 
@@ -108,8 +93,14 @@ func newInputModel() InputModel {
 	}
 }
 
-func (i *InputModel) Update(msg tea.Msg) tea.Cmd {
+func (i InputModel) Update(msg tea.Msg) (InputModel, tea.Cmd) {
 	var cmds []tea.Cmd
+	
+	// Don't consume shift+b - let the global handler in main.go handle it
+	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.String() == "shift+b" {
+		return i, nil
+	}
+	
 	if i.selectedInput == -1 {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -118,7 +109,7 @@ func (i *InputModel) Update(msg tea.Msg) tea.Cmd {
 				i.focusNextInput(-1)
 			case "j":
 				i.focusNextInput(1)
-			case "enter":
+			case "i":
 				i.selectInput()
 			}
 		}
@@ -134,7 +125,7 @@ func (i *InputModel) Update(msg tea.Msg) tea.Cmd {
 
 	// update all text inputs
 	cmds = append(cmds, i.updateInputs(msg)...)
-	return tea.Batch(cmds...)
+	return i, tea.Batch(cmds...)
 }
 
 func (i InputModel) View() string {
@@ -150,7 +141,6 @@ func (i InputModel) View() string {
 	b.WriteString(helpStyle.Render(strconv.Itoa(i.focusedIndex) + ": Focused Index\n"))
 	b.WriteString(helpStyle.Render(strconv.Itoa(i.selectedInput) + ": Selected Input\n"))
 	b.WriteString(i.PrintBuildSettings() + "\n")
-	b.WriteString(i.ConvertToBuildCmd() + "\n")
 
 	return b.String()
 }
@@ -276,18 +266,6 @@ func (i *InputModel) clearStyles() {
 
 func (i InputModel) PrintBuildSettings() string {
 	var b strings.Builder
-	b.WriteString("Current Build Settings:\n")
-	b.WriteString("Build Method: " + i.buildMethod.SelectedItem().FilterValue() + "\n")
-	b.WriteString("Build Directory: " + i.buildDirectory.Value() + "\n")
-	b.WriteString("Output File Name: " + i.outputFileName.Value() + "\n")
-	b.WriteString("Version Number: " + i.versionNumber.Value() + "\n")
-	b.WriteString("Version Code: " + i.versionCode.Value() + "\n")
-	b.WriteString("Build as AAB: " + i.aabFlag.SelectedItem().FilterValue() + "\n")
-	return b.String()
-}
-
-func (i InputModel) ConvertToBuildCmd() string {
-	var b strings.Builder
 	b.WriteString("/Unity/Editor/6000.0.58f2/Editor/Unity")
 	b.WriteString(" -batchmode")
 	b.WriteString(" -nographics")
@@ -302,4 +280,26 @@ func (i InputModel) ConvertToBuildCmd() string {
 	b.WriteString(" versionCode=" + i.versionCode.Value())
 	b.WriteString(" aabCheck=" + strings.ToLower(i.aabFlag.SelectedItem().FilterValue()))
 	return b.String()
+}
+
+// func (i InputModel) ConvertToBuildCmd() []string {
+// 	var cmd []string
+// 	cmd = append(cmd, "-batchmode")
+// 	cmd = append(cmd, "-nographics")
+// 	cmd = append(cmd, "-quit")
+// 	cmd = append(cmd, "-projectPath", i.buildDirectory.Value())
+// 	cmd = append(cmd, "-executeMethod", i.buildMethod.SelectedItem().FilterValue())
+// 	cmd = append(cmd, "-logFile", "-")
+// 	cmd = append(cmd, "--")
+// 	cmd = append(cmd, "buildPath="+i.buildDirectory.Value())
+// 	cmd = append(cmd, "fileName="+i.outputFileName.Value())
+// 	cmd = append(cmd, "version="+i.versionNumber.Value())
+// 	cmd = append(cmd, "versionCode="+i.versionCode.Value())
+// 	cmd = append(cmd, "aabCheck="+strings.ToLower(i.aabFlag.SelectedItem().FilterValue()))
+// 	return cmd
+// }
+
+func (i InputModel) ConvertToBuildCmd() []string {
+	var cmds []string
+	return cmds
 }
